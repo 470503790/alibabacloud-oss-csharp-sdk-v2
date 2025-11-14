@@ -292,6 +292,20 @@ namespace AlibabaCloud.OSS.V2
         }
 
         /// <summary>
+        /// You can call this operation to query the metadata of an object, including ETag, Size, and LastModified. The content of the object is not returned.
+        /// </summary>
+        /// <param name="request"><see cref="Models.GetObjectMetaRequest"/>The request parameter to send.</param>
+        /// <param name="options"><see cref="OperationOptions"/>Optional, operation options</param>
+        /// <returns><see cref="Models.GetObjectMetaResult" />The result instance.</returns>
+        public Models.GetObjectMetaResult GetObjectMeta(
+            Models.GetObjectMetaRequest request,
+            OperationOptions? options = null
+        )
+        {
+            return GetObjectMetaAsync(request, options, default).ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
         /// You can call this operation to restore objects of the Archive and Cold Archive storage classes.
         /// </summary>
         /// <param name="request"><see cref="Models.RestoreObjectRequest"/>The request parameter to send.</param>

@@ -223,5 +223,21 @@ namespace AlibabaCloud.OSS.V2
             }
             return result;
         }
+
+        /// <summary>
+        /// Get object to local file.
+        /// </summary>
+        /// <param name="request"><see cref="Models.GetObjectRequest"/>The request parameter to send.</param>
+        /// <param name="filepath">The file path name.</param>
+        /// <param name="options"><see cref="OperationOptions"/>Optional, operation options</param>
+        /// <returns><see cref="Models.GetObjectResult" />The result instance.</returns>
+        public Models.GetObjectResult GetObjectToFile(
+            Models.GetObjectRequest request,
+            string filepath,
+            OperationOptions? options = null
+        )
+        {
+            return GetObjectToFileAsync(request, filepath, options, default).ConfigureAwait(false).GetAwaiter().GetResult();
+        }
     }
 }
