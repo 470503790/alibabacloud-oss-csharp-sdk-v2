@@ -648,6 +648,45 @@ namespace AlibabaCloud.OSS.V2
         }
 
         /// <summary>
+        /// Applies process on the specified image file (synchronous).
+        /// </summary>
+        /// <param name="request"><see cref="Models.ProcessObjectRequest"/>The request parameter to send.</param>
+        /// <param name="options"><see cref="OperationOptions"/>Optional, operation options</param>
+        /// <param name="cancellationToken"><see cref="CancellationToken"/>Optional,The cancellation token to cancel operation.</param>
+        /// <returns><see cref="Models.ProcessObjectResult" />The result instance.</returns>
+        public Models.ProcessObjectResult ProcessObject(
+            Models.ProcessObjectRequest request,
+            OperationOptions? options = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            Ensure.NotNull(request.Bucket, "request.Bucket");
+            Ensure.NotNull(request.Key, "request.Key");
+            Ensure.NotNull(request.Process, "request.Process");
+
+            var input = new OperationInput
+            {
+                OperationName = "ProcessObject",
+                Method = "POST",
+                Parameters = new Dictionary<string, string> {
+                    { "x-oss-process", "" }
+                },
+                Bucket = request.Bucket,
+                Key = request.Key
+            };
+
+            Serde.SerializeInput(request, ref input, Serde.AddProcessAction, Serde.AddContentMd5);
+
+            var output = _clientImpl.Execute(input, options, cancellationToken);
+
+            Models.ResultModel result = new Models.ProcessObjectResult();
+
+            Serde.DeserializeOutput(ref result, ref output, Serde.DeserializerAnyBody);
+
+            return (Models.ProcessObjectResult)result;
+        }
+
+        /// <summary>
         /// Applies async process on the specified image file.
         /// </summary>
         /// <param name="request"><see cref="Models.AsyncProcessObjectRequest"/>The request parameter to send.</param>
