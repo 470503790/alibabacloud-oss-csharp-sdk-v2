@@ -153,6 +153,42 @@ namespace AlibabaCloud.OSS.V2
         }
 
         /// <summary>
+        /// Queries the information about all objects in a bucket (synchronous).
+        /// </summary>
+        /// <param name="request"><see cref="Models.ListObjectsRequest"/>The request parameter to send.</param>
+        /// <param name="options"><see cref="OperationOptions"/>Optional, operation options</param>
+        /// <param name="cancellationToken"><see cref="CancellationToken"/>Optional,The cancellation token to cancel operation.</param>
+        /// <returns><see cref="Models.ListObjectsResult" />The result instance.</returns>
+        public Models.ListObjectsResult ListObjects(
+            Models.ListObjectsRequest request,
+            OperationOptions? options = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            Ensure.NotNull(request.Bucket, "request.Bucket");
+
+            var input = new OperationInput
+            {
+                OperationName = "ListObjects",
+                Method = "GET",
+                Parameters = new Dictionary<string, string> {
+                    { "encoding-type", "url" }
+                },
+                Bucket = request.Bucket
+            };
+
+            Serde.SerializeInput(request, ref input);
+
+            var output = _clientImpl.Execute(input, options, cancellationToken);
+
+            Models.ResultModel result = new Models.ListObjectsResult();
+
+            Serde.DeserializeOutput(ref result, ref output, Serde.DeserializeListObjects);
+
+            return (Models.ListObjectsResult)result;
+        }
+
+        /// <summary>
         /// Queries the information about all objects in a bucket.
         /// </summary>
         /// <param name="request"><see cref="Models.ListObjectsV2Request"/>The request parameter to send.</param>

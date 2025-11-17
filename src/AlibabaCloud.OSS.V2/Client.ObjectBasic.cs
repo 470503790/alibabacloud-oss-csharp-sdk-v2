@@ -416,6 +416,41 @@ namespace AlibabaCloud.OSS.V2
         }
 
         /// <summary>
+        /// You can call this operation to query the metadata of an object (synchronous).
+        /// </summary>
+        /// <param name="request"><see cref="Models.HeadObjectRequest"/>The request parameter to send.</param>
+        /// <param name="options"><see cref="OperationOptions"/>Optional, operation options</param>
+        /// <param name="cancellationToken"><see cref="CancellationToken"/>Optional,The cancellation token to cancel operation.</param>
+        /// <returns><see cref="Models.HeadObjectResult" />The result instance.</returns>
+        public Models.HeadObjectResult HeadObject(
+            Models.HeadObjectRequest request,
+            OperationOptions? options = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            Ensure.NotNull(request.Bucket, "request.Bucket");
+            Ensure.NotNull(request.Key, "request.Key");
+
+            var input = new OperationInput
+            {
+                OperationName = "HeadObject",
+                Method = "HEAD",
+                Bucket = request.Bucket,
+                Key = request.Key
+            };
+
+            Serde.SerializeInput(request, ref input);
+
+            var output = _clientImpl.Execute(input, options, cancellationToken);
+
+            Models.ResultModel result = new Models.HeadObjectResult();
+
+            Serde.DeserializeOutput(ref result, ref output);
+
+            return (Models.HeadObjectResult)result;
+        }
+
+        /// <summary>
         /// You can call this operation to query the metadata of an object, including ETag, Size, and LastModified. The content of the object is not returned.
         /// </summary>
         /// <param name="request"><see cref="Models.GetObjectMetaRequest"/>The request parameter to send.</param>
@@ -445,6 +480,44 @@ namespace AlibabaCloud.OSS.V2
             Serde.SerializeInput(request, ref input);
 
             var output = await _clientImpl.ExecuteAsync(input, options, cancellationToken).ConfigureAwait(false);
+
+            Models.ResultModel result = new Models.GetObjectMetaResult();
+
+            Serde.DeserializeOutput(ref result, ref output);
+
+            return (Models.GetObjectMetaResult)result;
+        }
+
+        /// <summary>
+        /// You can call this operation to query the metadata of an object, including ETag, Size, and LastModified. The content of the object is not returned (synchronous).
+        /// </summary>
+        /// <param name="request"><see cref="Models.GetObjectMetaRequest"/>The request parameter to send.</param>
+        /// <param name="options"><see cref="OperationOptions"/>Optional, operation options</param>
+        /// <param name="cancellationToken"><see cref="CancellationToken"/>Optional,The cancellation token to cancel operation.</param>
+        /// <returns><see cref="Models.GetObjectMetaResult" />The result instance.</returns>
+        public Models.GetObjectMetaResult GetObjectMeta(
+            Models.GetObjectMetaRequest request,
+            OperationOptions? options = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            Ensure.NotNull(request.Bucket, "request.Bucket");
+            Ensure.NotNull(request.Key, "request.Key");
+
+            var input = new OperationInput
+            {
+                OperationName = "GetObjectMeta",
+                Method = "HEAD",
+                Parameters = new Dictionary<string, string> {
+                    { "objectMeta", "" }
+                },
+                Bucket = request.Bucket,
+                Key = request.Key
+            };
+
+            Serde.SerializeInput(request, ref input);
+
+            var output = _clientImpl.Execute(input, options, cancellationToken);
 
             Models.ResultModel result = new Models.GetObjectMetaResult();
 
