@@ -105,6 +105,39 @@ namespace AlibabaCloud.OSS.V2.Internal
             }
         }
 
+        public OperationOutput Execute(
+            OperationInput input,
+            OperationOptions? options = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            // verify input
+            VerifyOperation(ref input);
+
+            // build execute context;
+            var (request, context) = BuildRequestContext(input, options ?? _defaultOpOptions);
+            context.ApiCallCancellationToken = cancellationToken;
+
+            // execute and wait result
+            try
+            {
+                var result = _executeStack.Execute(request, context);
+
+                return new()
+                {
+                    StatusCode = result.StatusCode,
+                    Status = result.Status,
+                    Headers = result.Headers,
+                    Body = result.Content,
+                    Input = input
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new OperationException(input.OperationName, ex);
+            }
+        }
+
         public PresignInnerResult PresignInner(
             OperationInput input,
             OperationOptions? options = null

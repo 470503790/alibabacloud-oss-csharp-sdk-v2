@@ -63,6 +63,12 @@ namespace AlibabaCloud.OSS.V2.Internal
             return handler.ExecuteAsync(request, context);
         }
 
+        public ResponseMessage Execute(RequestMessage request, ExecuteContext context)
+        {
+            var handler = Resolve();
+            return handler.Execute(request, context);
+        }
+
         public void Dispose()
         {
             _handler?.Dispose();

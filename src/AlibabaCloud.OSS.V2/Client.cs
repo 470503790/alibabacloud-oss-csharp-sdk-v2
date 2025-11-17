@@ -33,6 +33,23 @@ namespace AlibabaCloud.OSS.V2
             return await _clientImpl.ExecuteAsync(input, options, cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// The generic operations call (synchronous).
+        /// </summary>
+        /// <param name="input"><see cref="OperationInput"/>The request parameter to send.</param>
+        /// <param name="options"><see cref="OperationOptions"/>Optional, operation options</param>
+        /// <param name="cancellationToken"><see cref="CancellationToken"/>Optional,The cancellation token to cancel operation.</param>
+        /// <returns><see cref="OperationOutput" />The result instance.</returns>
+        /// <returns></returns>
+        public OperationOutput InvokeOperation(
+            OperationInput input,
+            OperationOptions? options = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            return _clientImpl.Execute(input, options, cancellationToken);
+        }
+
         public void Dispose()
         {
             _clientImpl.Dispose();
