@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,11 +23,21 @@ namespace AlibabaCloud.OSS.V2.Transport
         // The transport's private HttpClient is internal because it is used by tests.
         internal HttpClient Client { get; }
         internal bool _disposeClient = true;
+        private readonly HttpTransportOptions? _options;
 
         /// <summary>
         /// Creates a new <see cref="HttpTransport"/> instance using default configuration.
         /// </summary>
         public HttpTransport() : this(CreateDefaultClient()) { }
+
+        /// <summary>
+        /// Creates a new <see cref="HttpTransport"/> instance using the provided options.
+        /// </summary>
+        /// <param name="options">The transport options to use.</param>
+        public HttpTransport(HttpTransportOptions options) : this(CreateCustomClient(options))
+        {
+            _options = options;
+        }
 
         /// <summary>
         /// Creates a new instance of <see cref="HttpTransport"/> using the provided client instance.
@@ -59,6 +71,242 @@ namespace AlibabaCloud.OSS.V2.Transport
         {
             return Client.SendAsync(request, completionOption, cancellationToken);
         }
+
+        /// <summary>
+        /// Send an HTTP request as a synchronous operation using WebRequest.
+        /// <param name="request">The HTTP request message to send.</param>
+        /// <param name="completionOption">When the operation should complete (as soon as a response is available or after
+        /// reading the whole response content)</param>
+        /// <param name="cancellationToken">The cancellation token to cancel operation.</param>
+        /// </summary>
+#pragma warning disable SYSLIB0014 // WebRequest is obsolete but required by the specification
+        public HttpResponseMessage Send(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationToken cancellationToken)
+        {
+            if (request?.RequestUri == null)
+            {
+                throw new ArgumentNullException(nameof(request), "Request or RequestUri cannot be null");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var webRequest = (HttpWebRequest)WebRequest.Create(request.RequestUri);
+            webRequest.Method = request.Method.Method;
+
+            // Apply options if available
+            if (_options != null)
+            {
+                if (_options.ConnectTimeout.HasValue)
+                {
+                    webRequest.Timeout = (int)_options.ConnectTimeout.Value.TotalMilliseconds;
+                }
+                if (_options.EnabledRedirect.HasValue)
+                {
+                    webRequest.AllowAutoRedirect = _options.EnabledRedirect.Value;
+                }
+                if (_options.HttpProxy != null)
+                {
+                    webRequest.Proxy = _options.HttpProxy;
+                }
+#if !NETCOREAPP
+                if (_options.InsecureSkipVerify.GetValueOrDefault(false))
+                {
+                    webRequest.ServerCertificateValidationCallback = delegate { return true; };
+                }
+#else
+                // For .NET Core/5+, SSL validation is handled differently with WebRequest
+                // ServicePointManager is not available in .NET Core
+                if (_options.InsecureSkipVerify.GetValueOrDefault(false))
+                {
+                    // Note: WebRequest in .NET Core doesn't support per-request certificate validation
+                    // This would require using HttpClient or setting a global handler
+                }
+#endif
+            }
+
+            // Copy headers from HttpRequestMessage to WebRequest
+            foreach (var header in request.Headers)
+            {
+                var headerName = header.Key;
+                var headerValue = string.Join(",", header.Value);
+
+                switch (headerName.ToLowerInvariant())
+                {
+                    case "accept":
+                        webRequest.Accept = headerValue;
+                        break;
+                    case "connection":
+                        if (headerValue.Equals("keep-alive", StringComparison.OrdinalIgnoreCase))
+                            webRequest.KeepAlive = true;
+                        else if (headerValue.Equals("close", StringComparison.OrdinalIgnoreCase))
+                            webRequest.KeepAlive = false;
+                        break;
+                    case "content-type":
+                        webRequest.ContentType = headerValue;
+                        break;
+                    case "expect":
+                        if (headerValue == "100-continue")
+                            webRequest.ServicePoint.Expect100Continue = true;
+                        break;
+                    case "user-agent":
+                        webRequest.UserAgent = headerValue;
+                        break;
+                    case "host":
+                        webRequest.Host = headerValue;
+                        break;
+                    case "referer":
+                        webRequest.Referer = headerValue;
+                        break;
+                    case "transfer-encoding":
+                        if (headerValue.Equals("chunked", StringComparison.OrdinalIgnoreCase))
+                            webRequest.SendChunked = true;
+                        break;
+                    default:
+                        try
+                        {
+                            webRequest.Headers.Add(headerName, headerValue);
+                        }
+                        catch
+                        {
+                            // Some headers cannot be set directly
+                        }
+                        break;
+                }
+            }
+
+            // Copy content headers if content exists
+            if (request.Content != null)
+            {
+                foreach (var header in request.Content.Headers)
+                {
+                    var headerName = header.Key;
+                    var headerValue = string.Join(",", header.Value);
+
+                    switch (headerName.ToLowerInvariant())
+                    {
+                        case "content-type":
+                            webRequest.ContentType = headerValue;
+                            break;
+                        case "content-length":
+                            if (long.TryParse(headerValue, out var contentLength))
+                                webRequest.ContentLength = contentLength;
+                            break;
+                        default:
+                            try
+                            {
+                                webRequest.Headers.Add(headerName, headerValue);
+                            }
+                            catch
+                            {
+                                // Some headers cannot be set directly
+                            }
+                            break;
+                    }
+                }
+
+                // Write request body
+                if (request.Method != HttpMethod.Get && request.Method != HttpMethod.Head)
+                {
+                    using (var requestStream = webRequest.GetRequestStream())
+                    {
+                        request.Content.CopyToAsync(requestStream).GetAwaiter().GetResult();
+                    }
+                }
+            }
+
+            // Execute the request
+            HttpWebResponse webResponse;
+            try
+            {
+                webResponse = (HttpWebResponse)webRequest.GetResponse();
+            }
+            catch (WebException ex) when (ex.Response is HttpWebResponse errorResponse)
+            {
+                webResponse = errorResponse;
+            }
+
+            // Convert WebResponse to HttpResponseMessage
+            var response = new HttpResponseMessage((HttpStatusCode)webResponse.StatusCode);
+            response.ReasonPhrase = webResponse.StatusDescription;
+            response.RequestMessage = request;
+
+            // Copy response headers
+            foreach (var headerName in webResponse.Headers.AllKeys)
+            {
+                var headerValue = webResponse.Headers[headerName];
+                if (headerValue == null) continue;
+
+                var isContentHeader = headerName.StartsWith("Content-", StringComparison.OrdinalIgnoreCase);
+                
+                if (isContentHeader)
+                {
+                    if (response.Content == null)
+                    {
+                        response.Content = new StreamContent(Stream.Null);
+                    }
+                    try
+                    {
+                        response.Content.Headers.TryAddWithoutValidation(headerName, headerValue);
+                    }
+                    catch
+                    {
+                        // Ignore headers that cannot be added
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        response.Headers.TryAddWithoutValidation(headerName, headerValue);
+                    }
+                    catch
+                    {
+                        // Ignore headers that cannot be added
+                    }
+                }
+            }
+
+            // Set response content
+            var responseStream = webResponse.GetResponseStream();
+            if (responseStream != null)
+            {
+                if (completionOption == HttpCompletionOption.ResponseContentRead)
+                {
+                    // Read the entire response into memory
+                    var memoryStream = new MemoryStream();
+                    responseStream.CopyTo(memoryStream);
+                    memoryStream.Position = 0;
+                    response.Content = new StreamContent(memoryStream);
+                    responseStream.Dispose();
+                }
+                else
+                {
+                    // Return the stream directly
+                    response.Content = new StreamContent(responseStream);
+                }
+
+                // Copy content headers again if we just created the content
+                foreach (var headerName in webResponse.Headers.AllKeys)
+                {
+                    var headerValue = webResponse.Headers[headerName];
+                    if (headerValue == null) continue;
+
+                    if (headerName.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            response.Content.Headers.TryAddWithoutValidation(headerName, headerValue);
+                        }
+                        catch
+                        {
+                            // Ignore headers that cannot be added
+                        }
+                    }
+                }
+            }
+
+            return response;
+        }
+#pragma warning restore SYSLIB0014
 
         /// <summary>
         /// Disposes the underlying <see cref="HttpClient"/>.
