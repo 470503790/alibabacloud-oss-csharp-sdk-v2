@@ -40,6 +40,38 @@ internal class MockHttpMessageHandler : HttpMessageHandler
         return Task.FromResult(ret);
     }
 
+#if NET5_0_OR_GREATER
+    protected override HttpResponseMessage Send(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken
+    )
+    {
+        LastRequest = request;
+        Requests ??= new List<HttpRequestMessage>();
+        Requests.Add(request);
+
+        if (Responses == null || Responses.Count == 0) throw new("Responses is null or empty");
+
+        RequestBodies ??= new List<byte[]>();
+        var body = new byte[] { };
+        if (request.Content != null)
+        {
+            body = request.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+        }
+        RequestBodies.Add(body);
+
+        var ret = Responses[0];
+        Responses.RemoveAt(0);
+
+        if (CalcCrc64)
+        {
+            var crc = Crc64.Compute(body, 0, body.Length);
+            ret.Headers.Add("x-oss-hash-crc64ecma", Convert.ToString(crc, CultureInfo.InvariantCulture));
+        }
+        return ret;
+    }
+#endif
+
     public void Clear()
     {
         LastRequest = null;
