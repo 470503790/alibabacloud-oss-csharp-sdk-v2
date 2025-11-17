@@ -48,6 +48,41 @@ namespace AlibabaCloud.OSS.V2
         }
 
         /// <summary>
+        /// You can call this operation to upload an object (synchronous).
+        /// </summary>
+        /// <param name="request"><see cref="Models.PutObjectRequest"/>The request parameter to send.</param>
+        /// <param name="options"><see cref="OperationOptions"/>Optional, operation options</param>
+        /// <param name="cancellationToken"><see cref="CancellationToken"/>Optional,The cancellation token to cancel operation.</param>
+        /// <returns><see cref="Models.PutObjectResult" />The result instance.</returns>
+        public Models.PutObjectResult PutObject(
+            Models.PutObjectRequest request,
+            OperationOptions? options = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            Ensure.NotNull(request.Bucket, "request.Bucket");
+            Ensure.NotNull(request.Key, "request.Key");
+
+            var input = new OperationInput
+            {
+                OperationName = "PutObject",
+                Method = "PUT",
+                Bucket = request.Bucket,
+                Key = request.Key
+            };
+
+            Serde.SerializeInput(request, ref input, Serde.AddMetadata, AddContentType, AddCrcChecker, AddProgress);
+
+            var output = _clientImpl.Execute(input, options, cancellationToken);
+
+            Models.ResultModel result = new Models.PutObjectResult();
+
+            Serde.DeserializeOutput(ref result, ref output, Serde.DeserializerAnyBody);
+
+            return (Models.PutObjectResult)result;
+        }
+
+        /// <summary>
         /// Copies objects within a bucket or between buckets in the same region.
         /// </summary>
         /// <param name="request"><see cref="Models.CopyObjectRequest"/>The request parameter to send.</param>
@@ -84,6 +119,42 @@ namespace AlibabaCloud.OSS.V2
         }
 
         /// <summary>
+        /// Copies objects within a bucket or between buckets in the same region (synchronous).
+        /// </summary>
+        /// <param name="request"><see cref="Models.CopyObjectRequest"/>The request parameter to send.</param>
+        /// <param name="options"><see cref="OperationOptions"/>Optional, operation options</param>
+        /// <param name="cancellationToken"><see cref="CancellationToken"/>Optional,The cancellation token to cancel operation.</param>
+        /// <returns><see cref="Models.CopyObjectResult" />The result instance.</returns>
+        public Models.CopyObjectResult CopyObject(
+            Models.CopyObjectRequest request,
+            OperationOptions? options = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            Ensure.NotNull(request.Bucket, "request.Bucket");
+            Ensure.NotNull(request.Key, "request.Key");
+            Ensure.NotNull(request.SourceKey, "request.SourceKey");
+
+            var input = new OperationInput
+            {
+                OperationName = "CopyObject",
+                Method = "PUT",
+                Bucket = request.Bucket,
+                Key = request.Key
+            };
+
+            Serde.SerializeInput(request, ref input, Serde.AddCopySource, Serde.AddMetadata);
+
+            var output = _clientImpl.Execute(input, options, cancellationToken);
+
+            Models.ResultModel result = new Models.CopyObjectResult();
+
+            Serde.DeserializeOutput(ref result, ref output, Serde.DeserializeCopyObject);
+
+            return (Models.CopyObjectResult)result;
+        }
+
+        /// <summary>
         /// You can call this operation to query an object as streams.
         /// </summary>
         /// <param name="request"><see cref="Models.GetObjectRequest"/>The request parameter to send.</param>
@@ -97,6 +168,22 @@ namespace AlibabaCloud.OSS.V2
         )
         {
             return await GetObjectAsync(request, HttpCompletionOption.ResponseHeadersRead, options, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// You can call this operation to query an object as streams (synchronous).
+        /// </summary>
+        /// <param name="request"><see cref="Models.GetObjectRequest"/>The request parameter to send.</param>
+        /// <param name="options"><see cref="OperationOptions"/>Optional, operation options</param>
+        /// <param name="cancellationToken"><see cref="CancellationToken"/>Optional,The cancellation token to cancel operation.</param>
+        /// <returns><see cref="Models.GetObjectResult" />The result instance.</returns>
+        public Models.GetObjectResult GetObject(
+            Models.GetObjectRequest request,
+            OperationOptions? options = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            return GetObject(request, HttpCompletionOption.ResponseHeadersRead, options, cancellationToken);
         }
 
         /// <summary>
@@ -131,6 +218,46 @@ namespace AlibabaCloud.OSS.V2
             Serde.SerializeInput(request, ref input);
 
             var output = await _clientImpl.ExecuteAsync(input, options, cancellationToken).ConfigureAwait(false);
+
+            Models.ResultModel result = new Models.GetObjectResult();
+
+            Serde.DeserializeOutput(ref result, ref output, Serde.DeserializerAnyBody);
+
+            return (Models.GetObjectResult)result;
+        }
+
+        /// <summary>
+        /// You can call this operation to query an object (synchronous).
+        /// </summary>
+        /// <param name="request"><see cref="Models.GetObjectRequest"/>The request parameter to send.</param>
+        /// <param name="completionOption">Indicates if the operations should be considered completed either as soon as a response is available, or after reading the entire response message including the content.</param>
+        /// <param name="options"><see cref="OperationOptions"/>Optional, operation options</param>
+        /// <param name="cancellationToken"><see cref="CancellationToken"/>Optional,The cancellation token to cancel operation.</param>
+        /// <returns><see cref="Models.GetObjectResult" />The result instance.</returns>
+        public Models.GetObjectResult GetObject(
+            Models.GetObjectRequest request,
+            HttpCompletionOption completionOption,
+            OperationOptions? options = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            Ensure.NotNull(request.Bucket, "request.Bucket");
+            Ensure.NotNull(request.Key, "request.Key");
+
+            var input = new OperationInput
+            {
+                OperationName = "GetObject",
+                Method = "GET",
+                Bucket = request.Bucket,
+                Key = request.Key,
+                OperationMetadata = new Dictionary<string, object> {
+                    { "http-completion-option", completionOption}
+                }
+            };
+
+            Serde.SerializeInput(request, ref input);
+
+            var output = _clientImpl.Execute(input, options, cancellationToken);
 
             Models.ResultModel result = new Models.GetObjectResult();
 
@@ -210,6 +337,41 @@ namespace AlibabaCloud.OSS.V2
             Serde.SerializeInput(request, ref input, Serde.AddContentMd5);
 
             var output = await _clientImpl.ExecuteAsync(input, options, cancellationToken).ConfigureAwait(false);
+
+            Models.ResultModel result = new Models.DeleteObjectResult();
+
+            Serde.DeserializeOutput(ref result, ref output);
+
+            return (Models.DeleteObjectResult)result;
+        }
+
+        /// <summary>
+        /// You can call this operation to delete an object (synchronous).
+        /// </summary>
+        /// <param name="request"><see cref="Models.DeleteObjectRequest"/>The request parameter to send.</param>
+        /// <param name="options"><see cref="OperationOptions"/>Optional, operation options</param>
+        /// <param name="cancellationToken"><see cref="CancellationToken"/>Optional,The cancellation token to cancel operation.</param>
+        /// <returns><see cref="Models.DeleteObjectResult" />The result instance.</returns>
+        public Models.DeleteObjectResult DeleteObject(
+            Models.DeleteObjectRequest request,
+            OperationOptions? options = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            Ensure.NotNull(request.Bucket, "request.Bucket");
+            Ensure.NotNull(request.Key, "request.Key");
+
+            var input = new OperationInput
+            {
+                OperationName = "DeleteObject",
+                Method = "DELETE",
+                Bucket = request.Bucket,
+                Key = request.Key
+            };
+
+            Serde.SerializeInput(request, ref input, Serde.AddContentMd5);
+
+            var output = _clientImpl.Execute(input, options, cancellationToken);
 
             Models.ResultModel result = new Models.DeleteObjectResult();
 
