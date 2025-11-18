@@ -10,6 +10,8 @@ namespace AlibabaCloud.OSS.V2.Paginator
     public interface IPaginator<out T>
     {
         IEnumerable<T> IterPage();
+#if !NET48 && !NET471 && !NETSTANDARD2_0
         IAsyncEnumerable<T> IterPageAsync(CancellationToken cancellationToken = default);
+#endif
     }
 }

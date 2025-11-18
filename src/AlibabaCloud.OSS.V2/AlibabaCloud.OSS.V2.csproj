@@ -1,8 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- 单框架使用 TargetFramework 避免空条目触发多目标处理 -->
+    <TargetFramework>net48</TargetFramework>
+
+    <!-- 直接手动指定版本，彻底绕过 MinVer 对 git 的依赖 -->
+    <Version>1.2.3</Version>
+    <AssemblyVersion>1.2.3.0</AssemblyVersion>
+    <FileVersion>1.2.3.0</FileVersion>
+    <InformationalVersion>1.2.3</InformationalVersion>
+
+    <!-- 如果存在上层 (Directory.Build.props) 引入 MinVer，可通过下行强制跳过 -->
+    <MinVerSkip>true</MinVerSkip>
+    <Description>Alibaba Cloud OSS SDK for .NET V2，改造版，支持同步方法
+https://github.com/470503790/alibabacloud-oss-csharp-sdk-v2</Description>
+    <Authors>Alibaba Cloud OSS SDK-rca7</Authors>
+    <Company>yiparts.com</Company>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(TargetFramework)' == 'net471' Or '$(TargetFramework)' == 'net48'">
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Web" />
   </ItemGroup>
+
   <ItemGroup Condition="$(AddPolyfills) == 'true'">
     <PackageReference Include="Nullable" PrivateAssets="All" />
   </ItemGroup>
@@ -11,13 +30,7 @@
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net471'">
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
-  </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
   </ItemGroup>
 </Project>

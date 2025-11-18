@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+#if !NET48 && !NET471 && !NETSTANDARD2_0
 using System.Runtime.CompilerServices;
 using System.Threading;
+#endif
 using AlibabaCloud.OSS.V2.Models;
 
 namespace AlibabaCloud.OSS.V2.Paginator
@@ -28,7 +30,7 @@ namespace AlibabaCloud.OSS.V2.Paginator
         /// </summary>
         public IEnumerable<ListBucketsResult> IterPage()
         {
-            if (Interlocked.Exchange(ref _isPaginatorInUse, 1) != 0)
+            if (System.Threading.Interlocked.Exchange(ref _isPaginatorInUse, 1) != 0)
                 throw new InvalidOperationException(
                     "Paginator has already been consumed and cannot be reused. Please create a new instance."
                 );
@@ -44,14 +46,14 @@ namespace AlibabaCloud.OSS.V2.Paginator
             } while (result.IsTruncated ?? false);
         }
 
+#if !NET48 && !NET471 && !NETSTANDARD2_0
         /// <summary>
-        /// Iterates over the buckets.
+        /// Iterates over the buckets asynchronously.
         /// </summary>
-        public async IAsyncEnumerable<ListBucketsResult> IterPageAsync(
-            [EnumeratorCancellation] CancellationToken cancellationToken = default
-        )
+        public async IAsyncEnumerable<ListBucketsResult> IterPageAsync([
+            EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            if (Interlocked.Exchange(ref _isPaginatorInUse, 1) != 0)
+            if (System.Threading.Interlocked.Exchange(ref _isPaginatorInUse, 1) != 0)
                 throw new InvalidOperationException(
                     "Paginator has already been consumed and cannot be reused. Please create a new instance."
                 );
@@ -61,10 +63,11 @@ namespace AlibabaCloud.OSS.V2.Paginator
             do
             {
                 _request.Marker = marker;
-                result = await _client.ListBucketsAsync(_request, null, cancellationToken);
+                result = await _client.ListBucketsAsync(_request, null, cancellationToken).ConfigureAwait(false);
                 marker = result.NextMarker;
                 yield return result;
             } while (result.IsTruncated ?? false);
         }
+#endif
     }
 }

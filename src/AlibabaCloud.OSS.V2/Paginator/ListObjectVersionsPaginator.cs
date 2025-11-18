@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+#if !NET48 && !NET471 && !NETSTANDARD2_0
 using System.Runtime.CompilerServices;
 using System.Threading;
+#endif
 using AlibabaCloud.OSS.V2.Models;
 
 namespace AlibabaCloud.OSS.V2.Paginator
@@ -28,7 +30,7 @@ namespace AlibabaCloud.OSS.V2.Paginator
         /// </summary>
         public IEnumerable<ListObjectVersionsResult> IterPage()
         {
-            if (Interlocked.Exchange(ref _isPaginatorInUse, 1) != 0)
+            if (System.Threading.Interlocked.Exchange(ref _isPaginatorInUse, 1) != 0)
                 throw new InvalidOperationException(
                     "Paginator has already been consumed and cannot be reused. Please create a new instance."
                 );
@@ -47,14 +49,14 @@ namespace AlibabaCloud.OSS.V2.Paginator
             } while (result.IsTruncated ?? false);
         }
 
+#if !NET48 && !NET471 && !NETSTANDARD2_0
         /// <summary>
-        /// Iterates over the object versions.
+        /// Iterates over the object versions asynchronously.
         /// </summary>
-        public async IAsyncEnumerable<ListObjectVersionsResult> IterPageAsync(
-            [EnumeratorCancellation] CancellationToken cancellationToken = default
-        )
+        public async IAsyncEnumerable<ListObjectVersionsResult> IterPageAsync([
+            EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            if (Interlocked.Exchange(ref _isPaginatorInUse, 1) != 0)
+            if (System.Threading.Interlocked.Exchange(ref _isPaginatorInUse, 1) != 0)
                 throw new InvalidOperationException(
                     "Paginator has already been consumed and cannot be reused. Please create a new instance."
                 );
@@ -66,11 +68,12 @@ namespace AlibabaCloud.OSS.V2.Paginator
             {
                 _request.KeyMarker = keyMarker;
                 _request.VersionIdMarker = versionIdMarker;
-                result = await _client.ListObjectVersionsAsync(_request, null, cancellationToken);
+                result = await _client.ListObjectVersionsAsync(_request, null, cancellationToken).ConfigureAwait(false);
                 keyMarker = result.NextKeyMarker;
                 versionIdMarker = result.NextVersionIdMarker;
                 yield return result;
             } while (result.IsTruncated ?? false);
         }
+#endif
     }
 }

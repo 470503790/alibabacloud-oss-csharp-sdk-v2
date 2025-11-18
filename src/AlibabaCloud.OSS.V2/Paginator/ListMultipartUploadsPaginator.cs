@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+#if !NET48 && !NET471 && !NETSTANDARD2_0
 using System.Runtime.CompilerServices;
 using System.Threading;
+#endif
 using AlibabaCloud.OSS.V2.Models;
 
 namespace AlibabaCloud.OSS.V2.Paginator
@@ -32,7 +34,7 @@ namespace AlibabaCloud.OSS.V2.Paginator
         /// </summary>
         public IEnumerable<ListMultipartUploadsResult> IterPage()
         {
-            if (Interlocked.Exchange(ref _isPaginatorInUse, 1) != 0)
+            if (System.Threading.Interlocked.Exchange(ref _isPaginatorInUse, 1) != 0)
                 throw new InvalidOperationException(
                     "Paginator has already been consumed and cannot be reused. Please create a new instance."
                 );
@@ -51,14 +53,14 @@ namespace AlibabaCloud.OSS.V2.Paginator
             } while (result.IsTruncated ?? false);
         }
 
+#if !NET48 && !NET471 && !NETSTANDARD2_0
         /// <summary>
-        /// Iterates over the multipart uploads.
+        /// Iterates over the multipart uploads asynchronously.
         /// </summary>
-        public async IAsyncEnumerable<ListMultipartUploadsResult> IterPageAsync(
-            [EnumeratorCancellation] CancellationToken cancellationToken = default
-        )
+        public async IAsyncEnumerable<ListMultipartUploadsResult> IterPageAsync([
+            EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            if (Interlocked.Exchange(ref _isPaginatorInUse, 1) != 0)
+            if (System.Threading.Interlocked.Exchange(ref _isPaginatorInUse, 1) != 0)
                 throw new InvalidOperationException(
                     "Paginator has already been consumed and cannot be reused. Please create a new instance."
                 );
@@ -70,11 +72,12 @@ namespace AlibabaCloud.OSS.V2.Paginator
             {
                 _request.UploadIdMarker = uploadIdMarker;
                 _request.KeyMarker = keyMarker;
-                result = await _client.ListMultipartUploadsAsync(_request, null, cancellationToken);
+                result = await _client.ListMultipartUploadsAsync(_request, null, cancellationToken).ConfigureAwait(false);
                 uploadIdMarker = result.NextUploadIdMarker;
                 keyMarker = result.NextKeyMarker;
                 yield return result;
             } while (result.IsTruncated ?? false);
         }
+#endif
     }
 }
